@@ -1,2 +1,4 @@
 jupyter
-pybaseball==2.0.0
+pandas
+numpy
+pyarrow
