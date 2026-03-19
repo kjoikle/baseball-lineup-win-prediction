@@ -1,4 +1,5 @@
 .venv
-data
+data/*
+!data/README.md
 .claude
 .ipynb_checkpoints
