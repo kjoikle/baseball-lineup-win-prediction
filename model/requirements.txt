@@ -1,7 +1,10 @@
 jupyter
+ipykernel
 pandas
 numpy
 pyarrow
 scikit-learn
 matplotlib
 seaborn
+torch
+joblib
