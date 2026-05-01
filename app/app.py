@@ -11,15 +11,15 @@ TEAMS = ["away", "home"]
 
 MODEL = joblib.load("../model/model.pkl")
 
+# TODO: enter real players and get their stats from an API instead of manual input
+# try this https://github.com/zero-sum-seattle/python-mlb-statsapi
+# can scrape myself from something like https://www.baseball-reference.com/leagues/majors/2024-standard-batting.shtml#all_players_standard_batting
 
-# --- Model stub: replace this function to connect a real model ---
+
 def run_model(_features: dict) -> dict:
     feature_array = np.array(list(_features.values())).reshape(1, -1)
     prediction = MODEL.predict_proba(feature_array)[0][1]
     return {"home_win_prob": prediction}
-
-
-# ----------------------------------------------------------------
 
 
 def create_diff_features(features: dict) -> dict:
@@ -113,7 +113,6 @@ if __name__ == "__main__":
 
 
 # --- Test Helpers ---
-
 
 def _batter_stats_away(team, n):
     return {
