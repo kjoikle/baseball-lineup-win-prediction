@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prediction Result</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f5f5f5;
+        color: #222;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        gap: 1.5rem;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 2.5rem 3rem;
+        text-align: center;
+        max-width: 420px;
+        width: 90%;
+      }
+      .matchup {
+        font-size: 1.1rem;
+        color: #555;
+        margin-bottom: 1.5rem;
+      }
+      .matchup strong {
+        color: #222;
+      }
+      .result-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #888;
+        margin-bottom: 0.5rem;
+      }
+      .prob {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #1a3055;
+        line-height: 1;
+      }
+      .prob.pending {
+        font-size: 1.1rem;
+        color: #999;
+        font-weight: 400;
+      }
+      .team-label {
+        font-size: 0.9rem;
+        color: #555;
+        margin-top: 0.4rem;
+      }
+      a {
+        color: #1a3055;
+        font-size: 0.9rem;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="matchup">
+        <strong>{{ away_team }}</strong> @ <strong>{{ home_team }}</strong>
+      </div>
+      <div class="result-label">{{ winner }} Wins with Probability</div>
+      {% if winner_win_prob is not none %}
+      <div class="prob">{{ "%.1f"|format(winner_win_prob * 100) }}%</div>
+      <!-- <div class="team-label">{{ winner }}</div> -->
+      {% else %}
+      <div class="prob pending">Model not yet connected</div>
+      {% endif %}
+    </div>
+    <a href="/">← Enter another lineup</a>
+  </body>
+</html>

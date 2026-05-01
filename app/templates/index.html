@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MLB Win Probability</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f5f5f5;
+        color: #222;
+      }
+
+      header {
+        background: #1a3055;
+        color: #fff;
+        padding: 1rem 2rem;
+      }
+      header h1 {
+        font-size: 1.3rem;
+        font-weight: 600;
+      }
+
+      .matchup-bar {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        padding: 1rem 2rem;
+        background: #fff;
+        border-bottom: 1px solid #ddd;
+      }
+      .matchup-bar label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #555;
+        text-transform: uppercase;
+      }
+      .matchup-bar input[type="text"] {
+        padding: 0.4rem 0.6rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.95rem;
+        width: 160px;
+      }
+      .matchup-bar .vs {
+        font-weight: 700;
+        color: #888;
+        padding: 0 0.25rem;
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        padding: 1.5rem 2rem;
+      }
+
+      .team-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .team-col h2 {
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid #1a3055;
+      }
+      .team-col.home h2 {
+        color: #1a3055;
+      }
+      .team-col.away h2 {
+        color: #8b1a1a;
+      }
+
+      .card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+      }
+      .card-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #555;
+        margin-bottom: 0.6rem;
+      }
+
+      /* player-select-slot: extension point for autocomplete / real-player lookup */
+      .player-select-slot {
+        margin-bottom: 0.6rem;
+      }
+      .player-select-slot .player-name-input {
+        width: 100%;
+        padding: 0.35rem 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: #444;
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.4rem;
+      }
+      .stat-grid.pitcher {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      .stat-field {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .stat-field label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #777;
+        text-transform: uppercase;
+      }
+      .stat-field input[type="number"] {
+        padding: 0.3rem 0.4rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        width: 100%;
+        text-align: center;
+      }
+      .stat-field input[type="number"]:focus {
+        outline: 2px solid #1a3055;
+        border-color: transparent;
+      }
+
+      .batter-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .batter-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .batter-num {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #999;
+        min-width: 1.2rem;
+        text-align: right;
+      }
+      .batter-header .player-select-slot {
+        flex: 1;
+        margin-bottom: 0;
+      }
+
+      .batting-order {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .submit-bar {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        border-top: 1px solid #ddd;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .submit-bar button {
+        background: #1a3055;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 0.65rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .submit-bar button:hover {
+        background: #0f1f38;
+      }
+      .submit-bar .btn-secondary {
+        background: #fff;
+        color: #1a3055;
+        border: 1.5px solid #1a3055;
+      }
+      .submit-bar .btn-secondary:hover {
+        background: #eef2f7;
+      }
+      .submit-bar {
+        gap: 0.75rem;
+      }
+      .submit-error {
+        margin-right: auto;
+        align-self: center;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #dc2626;
+      }
+
+      .error-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fef2f2;
+        border-left: 4px solid #dc2626;
+        color: #991b1b;
+        padding: 0.75rem 2rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .error-banner button {
+        background: none;
+        border: none;
+        color: #991b1b;
+        font-size: 1.2rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0 0.25rem;
+      }
+
+      .stat-field input.field-error {
+        border-color: #dc2626;
+        background: #fff5f5;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>MLB Win Probability — Enter Lineups</h1>
+    </header>
+
+    {% if error %}
+    <div class="error-banner" id="error-banner">
+      <span>{{ error }}</span>
+      <button type="button" onclick="document.getElementById('error-banner').remove()" aria-label="Dismiss">×</button>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/predict">
+      <div class="matchup-bar">
+        <label for="away_team">Away</label>
+        <input
+          type="text"
+          id="away_team"
+          name="away_team"
+          placeholder="e.g. NYY"
+          maxlength="30"
+        />
+        <span class="vs">@</span>
+        <label for="home_team">Home</label>
+        <input
+          type="text"
+          id="home_team"
+          name="home_team"
+          placeholder="e.g. BOS"
+          maxlength="30"
+        />
+      </div>
+
+      <div class="columns">
+        {% for team, label in [("away", "Away"), ("home", "Home")] %}
+        <div class="team-col {{ team }}">
+          <h2>{{ label }} Lineup</h2>
+
+          <!-- Starting Pitcher -->
+          <div class="card">
+            <div class="card-title">Starting Pitcher</div>
+            <div class="player-select-slot">
+              <!-- swap this input for a <select> / autocomplete to enable real-player lookup -->
+              <input
+                class="player-name-input"
+                type="text"
+                name="{{ team }}_sp_player_name"
+                placeholder="Pitcher name (optional)"
+              />
+            </div>
+            <div class="stat-grid pitcher">
+              <div class="stat-field">
+                <label>ERA</label>
+                <input
+                  type="number"
+                  name="{{ team }}_sp_ERA"
+                  placeholder="4.00"
+                  min="0"
+                  max="30"
+                  step="0.01"
+                />
+              </div>
+              <div class="stat-field">
+                <label>WHIP</label>
+                <input
+                  type="number"
+                  name="{{ team }}_sp_WHIP"
+                  placeholder="1.25"
+                  min="0"
+                  max="5"
+                  step="0.01"
+                />
+              </div>
+              <div class="stat-field">
+                <label>SO9</label>
+                <input
+                  type="number"
+                  name="{{ team }}_sp_SO9"
+                  placeholder="9.0"
+                  min="0"
+                  max="20"
+                  step="0.1"
+                />
+              </div>
+              <div class="stat-field">
+                <label>SO/W</label>
+                <input
+                  type="number"
+                  name="{{ team }}_sp_SO/W"
+                  placeholder="3.0"
+                  min="0"
+                  max="20"
+                  step="0.01"
+                />
+              </div>
+              <div class="stat-field">
+                <label>IP</label>
+                <input
+                  type="number"
+                  name="{{ team }}_sp_IP"
+                  placeholder="150"
+                  min="0"
+                  max="300"
+                  step="0.1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Batting Order -->
+          <div class="card">
+            <div class="card-title">Batting Order</div>
+            <div class="batting-order">
+              {% for n in range(1, 10) %}
+              <div class="batter-row">
+                <div class="batter-header">
+                  <span class="batter-num">{{ n }}.</span>
+                  <div class="player-select-slot">
+                    <!-- swap this input for a <select> / autocomplete to enable real-player lookup -->
+                    <input
+                      class="player-name-input"
+                      type="text"
+                      name="{{ team }}_bat{{ n }}_player_name"
+                      placeholder="Batter name (optional)"
+                    />
+                  </div>
+                </div>
+                <div class="stat-grid">
+                  <div class="stat-field">
+                    <label>BA</label>
+                    <input
+                      type="number"
+                      name="{{ team }}_bat{{ n }}_BA"
+                      placeholder=".260"
+                      min="0"
+                      max="1"
+                      step="0.001"
+                    />
+                  </div>
+                  <div class="stat-field">
+                    <label>OBP</label>
+                    <input
+                      type="number"
+                      name="{{ team }}_bat{{ n }}_OBP"
+                      placeholder=".330"
+                      min="0"
+                      max="1"
+                      step="0.001"
+                    />
+                  </div>
+                  <div class="stat-field">
+                    <label>SLG</label>
+                    <input
+                      type="number"
+                      name="{{ team }}_bat{{ n }}_SLG"
+                      placeholder=".430"
+                      min="0"
+                      max="4"
+                      step="0.001"
+                    />
+                  </div>
+                  <div class="stat-field">
+                    <label>OPS</label>
+                    <input
+                      type="number"
+                      name="{{ team }}_bat{{ n }}_OPS"
+                      placeholder=".760"
+                      min="0"
+                      max="5"
+                      step="0.001"
+                    />
+                  </div>
+                  <div class="stat-field">
+                    <label>K%</label>
+                    <input
+                      type="number"
+                      name="{{ team }}_bat{{ n }}_K%"
+                      placeholder=".22"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                    />
+                  </div>
+                  <div class="stat-field">
+                    <label>BB%</label>
+                    <input
+                      type="number"
+                      name="{{ team }}_bat{{ n }}_BB%"
+                      placeholder=".08"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="submit-bar">
+        <span class="submit-error" id="submit-error"></span>
+        <button type="button" class="btn-secondary" onclick="clearForm()">
+          Clear
+        </button>
+        <button type="button" class="btn-secondary" onclick="fillRandom()">
+          Fill Random Stats
+        </button>
+        <button type="submit">Predict Winner →</button>
+      </div>
+    </form>
+    <script>
+      const STORAGE_KEY = "lineup_form";
+      const form = document.querySelector("form");
+
+      // Restore saved values on page load
+      document.addEventListener("DOMContentLoaded", () => {
+        const saved = sessionStorage.getItem(STORAGE_KEY);
+        if (!saved) return;
+        const data = JSON.parse(saved);
+        form.querySelectorAll("input[name]").forEach((el) => {
+          if (el.name in data) el.value = data[el.name];
+        });
+      });
+
+      // Validate, then save before navigating to results
+      form.addEventListener("submit", (e) => {
+        // Clear previous error states
+        form.querySelectorAll(".field-error").forEach((el) => el.classList.remove("field-error"));
+        const submitError = document.getElementById("submit-error");
+        submitError.textContent = "";
+
+        const empty = [...form.querySelectorAll('input[type="number"][name]')].filter(
+          (el) => el.value === "",
+        );
+        if (empty.length > 0) {
+          e.preventDefault();
+          empty.forEach((el) => el.classList.add("field-error"));
+          submitError.textContent = `${empty.length} stat field${empty.length !== 1 ? "s" : ""} missing`;
+          return;
+        }
+
+        const data = {};
+        form.querySelectorAll("input[name]").forEach((el) => {
+          data[el.name] = el.value;
+        });
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      });
+
+      function clearForm() {
+        form.querySelectorAll("input[name]").forEach((el) => (el.value = ""));
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+
+      function rand(min, max, decimals) {
+        const val = min + Math.random() * (max - min);
+        return parseFloat(val.toFixed(decimals));
+      }
+
+      function fillRandom() {
+        const teams = ["home", "away"];
+        teams.forEach((team) => {
+          set(`${team}_sp_ERA`, rand(2.5, 5.5, 2));
+          set(`${team}_sp_WHIP`, rand(0.95, 1.65, 2));
+          set(`${team}_sp_SO9`, rand(6.0, 13.0, 1));
+          set(`${team}_sp_SO/W`, rand(1.5, 5.0, 2));
+          set(`${team}_sp_IP`, rand(50, 200, 1));
+
+          for (let n = 1; n <= 9; n++) {
+            const ba = rand(0.21, 0.32, 3);
+            const obp = parseFloat(
+              Math.min(ba + rand(0.045, 0.11, 3), 0.5).toFixed(3),
+            );
+            const slg = parseFloat((ba + rand(0.07, 0.26, 3)).toFixed(3));
+            set(`${team}_bat${n}_BA`, ba);
+            set(`${team}_bat${n}_OBP`, obp);
+            set(`${team}_bat${n}_SLG`, slg);
+            set(`${team}_bat${n}_OPS`, parseFloat((obp + slg).toFixed(3)));
+            set(`${team}_bat${n}_K%`, rand(0.1, 0.33, 2));
+            set(`${team}_bat${n}_BB%`, rand(0.04, 0.15, 2));
+          }
+        });
+      }
+
+      function set(name, value) {
+        const el = document.querySelector(`[name="${name}"]`);
+        if (el) el.value = value;
+      }
+    </script>
+  </body>
+</html>

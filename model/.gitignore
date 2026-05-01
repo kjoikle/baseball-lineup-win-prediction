@@ -1,0 +1,6 @@
+.venv
+data/*
+!data/README.md
+.claude
+.ipynb_checkpoints
+model.pkl
