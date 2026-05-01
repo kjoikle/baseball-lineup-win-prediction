@@ -15,7 +15,7 @@ pip install git+https://github.com/jldbc/pybaseball.git
 
 ## Data Prerequisites
 
-Download Retrosheet gamelogs for the years you want and place them in `data/`:
+Retrosheet gamelogs for the years you want and place them in `data/`. By default years 2023, 2024, 2025 are saved. Current code expects only these years:
 
 ```
 data/gl2023.txt
@@ -37,13 +37,13 @@ This trains a logistic regression on `data/train_features.parquet`, prints test 
 
 Key config options:
 
-| Option | Default | Description |
-|---|---|---|
-| `OUTPUT_PATH` | `model.pkl` | Where to save the trained model |
-| `USE_DIFFERENTIAL` | `True` | 59 diff features vs. 118 raw |
-| `USE_SCALE` | `False` | Apply StandardScaler |
-| `POLY_DEGREE` | `None` | Add polynomial/interaction features |
-| `MODEL_PARAMS` | L2, C=0.2336 | kwargs passed to `LogisticRegression` |
+| Option             | Default      | Description                           |
+| ------------------ | ------------ | ------------------------------------- |
+| `OUTPUT_PATH`      | `model.pkl`  | Where to save the trained model       |
+| `USE_DIFFERENTIAL` | `True`       | 59 diff features vs. 118 raw          |
+| `USE_SCALE`        | `False`      | Apply StandardScaler                  |
+| `POLY_DEGREE`      | `None`       | Add polynomial/interaction features   |
+| `MODEL_PARAMS`     | L2, C=0.2336 | kwargs passed to `LogisticRegression` |
 
 ## Running the Data Pipeline
 

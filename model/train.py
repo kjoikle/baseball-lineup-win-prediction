@@ -17,6 +17,8 @@ USE_SCALE        = False  # StandardScaler before model; required when solver='s
 POLY_DEGREE      = None
 POLY_INTERACTION = True   # interaction-only (no x²); ignored when POLY_DEGREE is None
 
+SCRAMBLE_TRAIN_AND_TEST_SETS = False  # set to True to test random sampling instead of chronological split
+
 # LogisticRegression hyperparameters (sklearn ≥ 1.8 API — no penalty kwarg)
 #   l1_ratio : 0.0 = pure L2 | 1.0 = pure L1 | (0, 1) = ElasticNet
 #   C        : inverse regularization strength; smaller = stronger regularization
@@ -98,8 +100,15 @@ def main():
     print("Loading data...")
     train_df = pd.read_parquet(TRAIN_PATH)
     test_df  = pd.read_parquet(TEST_PATH)
+
+    if SCRAMBLE_TRAIN_AND_TEST_SETS:
+        all_games_df = pd.concat([train_df, test_df], ignore_index=True)
+        train_df = all_games_df.sample(frac=0.8, random_state=RANDOM_SEED).reset_index(drop=True)
+        test_df = all_games_df.drop(train_df.index).reset_index(drop=True)
+
     y_train  = train_df["home_win"].values
     y_test   = test_df["home_win"].values
+
     print(f"  Train: {train_df.shape}  Test: {test_df.shape}")
 
     print("Building features...")
