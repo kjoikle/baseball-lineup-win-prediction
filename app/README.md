@@ -4,7 +4,13 @@ Flask web app for predicting MLB home team win probability. Takes manual stat in
 
 ## Prerequisites
 
-`model/model.pkl` must exist. Run the model pipeline first if it doesn't — see [model/README.md](../model/README.md).
+`model/model.pkl` must exist. Run the model pipeline first if it doesn't — see [model/README.md](../model/README.md). If you need to change the path to the model:
+
+```bash
+cp .env.example .env
+```
+
+And set your path there.
 
 ## Setup
 
@@ -29,9 +35,9 @@ Then open [http://localhost:5000](http://localhost:5000).
 
 For each team, enter stats for the starting pitcher and 9 batters:
 
-| Role | Stats |
-|------|-------|
-| Starting pitcher | ERA, WHIP, SO9, SO/W, IP |
+| Role              | Stats                      |
+| ----------------- | -------------------------- |
+| Starting pitcher  | ERA, WHIP, SO9, SO/W, IP   |
 | Each batter (1–9) | BA, OBP, SLG, OPS, K%, BB% |
 
 All fields are required. The model computes home-minus-away diffs internally and passes them to the classifier.

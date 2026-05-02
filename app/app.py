@@ -1,6 +1,7 @@
 from flask import Flask, redirect, render_template, request, url_for
 import joblib
 import numpy as np
+import os
 
 app = Flask(__name__)
 
@@ -9,12 +10,11 @@ PITCHING_STATS = ["ERA", "WHIP", "SO9", "SO/W", "IP"]
 PITCHING_LOWER_IS_BETTER = {"ERA", "WHIP"}
 TEAMS = ["away", "home"]
 
-MODEL = joblib.load("../model/model.pkl")
+DEFAULT_MODEL_PATH = "./models/elastic-model.pkl"
 
-# TODO: enter real players and get their stats from an API instead of manual input
-# try this https://github.com/zero-sum-seattle/python-mlb-statsapi
-# can scrape myself from something like https://www.baseball-reference.com/leagues/majors/2024-standard-batting.shtml#all_players_standard_batting
+MODEL_PATH = DEFAULT_MODEL_PATH
 
+MODEL = joblib.load(MODEL_PATH)
 
 def run_model(_features: dict) -> dict:
     feature_array = np.array(list(_features.values())).reshape(1, -1)
