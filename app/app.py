@@ -1,8 +1,10 @@
-from flask import Flask, redirect, render_template, request, url_for
+import mlbstatsapi
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 import joblib
 import numpy as np
 
 app = Flask(__name__)
+mlb = mlbstatsapi.Mlb()
 
 BATTING_STATS = ["BA", "OBP", "SLG", "OPS", "K%", "BB%"]
 PITCHING_STATS = ["ERA", "WHIP", "SO9", "SO/W", "IP"]
@@ -11,6 +13,76 @@ TEAMS = ["away", "home"]
 
 MODEL_PATH = "./models/model.pkl"
 MODEL = joblib.load(MODEL_PATH)
+
+# TODO: better way to search names (right now cannot search ppl with accents)
+
+def fetch_player_hitting_stats(player_id: int, season: int) -> dict | None:
+    resp = mlb._mlb_adapter_v1.get(
+        endpoint=f"people/{player_id}/stats",
+        ep_params={"stats": ["season"], "group": ["hitting"], "season": season},
+    )
+    splits = resp.data.get("stats", [{}])[0].get("splits", [])
+    if not splits:
+        return None
+    raw = splits[0]["stat"]
+    pa = raw.get("plateAppearances") or 0
+    if not pa:
+        return None
+    return {
+        "BA":  round(float(raw["avg"]), 3),
+        "OBP": round(float(raw["obp"]), 3),
+        "SLG": round(float(raw["slg"]), 3),
+        "OPS": round(float(raw["ops"]), 3),
+        "K%":  round(raw["strikeOuts"] / pa, 4),
+        "BB%": round(raw["baseOnBalls"] / pa, 4),
+    }
+
+
+def fetch_player_pitching_stats(player_id: int, season: int) -> dict | None:
+    stats = mlb.get_player_stats(player_id, stats=["season"], groups=["pitching"], season=season)
+    if not stats or "pitching" not in stats:
+        return None
+    splits = stats["pitching"]["season"].splits
+    if not splits:
+        return None
+    s = splits[0].stat
+    return {
+        "ERA":  s.era,
+        "WHIP": s.whip,
+        "SO9":  s.strikeouts_per_9_inn,
+        "SO/W": s.strikeout_walk_ratio,
+        "IP":   s.innings_pitched,
+    }
+
+
+@app.route("/autofill", methods=["POST"])
+def autofill():
+    data = request.get_json(silent=True) or {}
+    season = int(data.get("season", 2025))
+    players = data.get("players", [])
+
+    result = {}
+    for player in players:
+        slot = player.get("slot", "")
+        name = (player.get("name") or "").strip()
+        kind = player.get("kind", "")
+        if not name or not slot:
+            continue
+        ids = mlb.get_people_id(name)
+        if not ids:
+            continue
+        pid = ids[0]
+        try:
+            stats = fetch_player_pitching_stats(pid, season) if kind == "pitcher" \
+                    else fetch_player_hitting_stats(pid, season)
+            if stats:
+                for stat_name, val in stats.items():
+                    result[f"{slot}_{stat_name}"] = val
+        except Exception:
+            pass
+
+    return jsonify(result)
+
 
 def run_model(_features: dict) -> dict:
     feature_array = np.array(list(_features.values())).reshape(1, -1)

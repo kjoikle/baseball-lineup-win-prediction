@@ -2,3 +2,4 @@ flask
 joblib
 numpy
 scikit-learn
+python-mlb-statsapi

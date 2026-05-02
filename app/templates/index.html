@@ -238,6 +238,41 @@
         background: #fff5f5;
         outline: none;
       }
+
+      .matchup-bar select {
+        padding: 0.4rem 0.6rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.95rem;
+      }
+
+      .player-name-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .player-name-row .player-name-input {
+        flex: 1;
+      }
+      .manual-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #999;
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .manual-toggle input[type="checkbox"] {
+        width: 12px;
+        height: 12px;
+        cursor: pointer;
+        accent-color: #1a3055;
+      }
     </style>
   </head>
   <body>
@@ -248,7 +283,13 @@
     {% if error %}
     <div class="error-banner" id="error-banner">
       <span>{{ error }}</span>
-      <button type="button" onclick="document.getElementById('error-banner').remove()" aria-label="Dismiss">×</button>
+      <button
+        type="button"
+        onclick="document.getElementById('error-banner').remove()"
+        aria-label="Dismiss"
+      >
+        ×
+      </button>
     </div>
     {% endif %}
 
@@ -271,6 +312,15 @@
           placeholder="e.g. BOS"
           maxlength="30"
         />
+        <span class="vs">·</span>
+        <label for="season">Season</label>
+        <select id="season">
+          {% for y in range(2026, 2021, -1) %} {% if y == 2025 %}
+          <option value="{{ y }}" selected>{{ y }}</option>
+          {% else %}
+          <option value="{{ y }}">{{ y }}</option>
+          {% endif %} {% endfor %}
+        </select>
       </div>
 
       <div class="columns">
@@ -282,13 +332,18 @@
           <div class="card">
             <div class="card-title">Starting Pitcher</div>
             <div class="player-select-slot">
-              <!-- swap this input for a <select> / autocomplete to enable real-player lookup -->
-              <input
-                class="player-name-input"
-                type="text"
-                name="{{ team }}_sp_player_name"
-                placeholder="Pitcher name (optional)"
-              />
+              <div class="player-name-row">
+                <input
+                  class="player-name-input"
+                  type="text"
+                  name="{{ team }}_sp_player_name"
+                  placeholder="Pitcher name (optional)"
+                />
+                <label class="manual-toggle">
+                  <input type="checkbox" id="{{ team }}_sp_manual" />
+                  manual
+                </label>
+              </div>
             </div>
             <div class="stat-grid pitcher">
               <div class="stat-field">
@@ -299,7 +354,7 @@
                   placeholder="4.00"
                   min="0"
                   max="30"
-                  step="0.01"
+                  step="any"
                 />
               </div>
               <div class="stat-field">
@@ -310,7 +365,7 @@
                   placeholder="1.25"
                   min="0"
                   max="5"
-                  step="0.01"
+                  step="any"
                 />
               </div>
               <div class="stat-field">
@@ -321,7 +376,7 @@
                   placeholder="9.0"
                   min="0"
                   max="20"
-                  step="0.1"
+                  step="any"
                 />
               </div>
               <div class="stat-field">
@@ -332,7 +387,7 @@
                   placeholder="3.0"
                   min="0"
                   max="20"
-                  step="0.01"
+                  step="any"
                 />
               </div>
               <div class="stat-field">
@@ -343,7 +398,7 @@
                   placeholder="150"
                   min="0"
                   max="300"
-                  step="0.1"
+                  step="any"
                 />
               </div>
             </div>
@@ -358,13 +413,21 @@
                 <div class="batter-header">
                   <span class="batter-num">{{ n }}.</span>
                   <div class="player-select-slot">
-                    <!-- swap this input for a <select> / autocomplete to enable real-player lookup -->
-                    <input
-                      class="player-name-input"
-                      type="text"
-                      name="{{ team }}_bat{{ n }}_player_name"
-                      placeholder="Batter name (optional)"
-                    />
+                    <div class="player-name-row">
+                      <input
+                        class="player-name-input"
+                        type="text"
+                        name="{{ team }}_bat{{ n }}_player_name"
+                        placeholder="Batter name (optional)"
+                      />
+                      <label class="manual-toggle">
+                        <input
+                          type="checkbox"
+                          id="{{ team }}_bat{{ n }}_manual"
+                        />
+                        manual
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <div class="stat-grid">
@@ -376,7 +439,7 @@
                       placeholder=".260"
                       min="0"
                       max="1"
-                      step="0.001"
+                      step="any"
                     />
                   </div>
                   <div class="stat-field">
@@ -387,7 +450,7 @@
                       placeholder=".330"
                       min="0"
                       max="1"
-                      step="0.001"
+                      step="any"
                     />
                   </div>
                   <div class="stat-field">
@@ -398,7 +461,7 @@
                       placeholder=".430"
                       min="0"
                       max="4"
-                      step="0.001"
+                      step="any"
                     />
                   </div>
                   <div class="stat-field">
@@ -409,7 +472,7 @@
                       placeholder=".760"
                       min="0"
                       max="5"
-                      step="0.001"
+                      step="any"
                     />
                   </div>
                   <div class="stat-field">
@@ -420,7 +483,7 @@
                       placeholder=".22"
                       min="0"
                       max="1"
-                      step="0.01"
+                      step="any"
                     />
                   </div>
                   <div class="stat-field">
@@ -431,7 +494,7 @@
                       placeholder=".08"
                       min="0"
                       max="1"
-                      step="0.01"
+                      step="any"
                     />
                   </div>
                 </div>
@@ -445,6 +508,14 @@
 
       <div class="submit-bar">
         <span class="submit-error" id="submit-error"></span>
+        <button
+          type="button"
+          class="btn-secondary"
+          id="autofill-btn"
+          onclick="autofill()"
+        >
+          Auto-fill Stats
+        </button>
         <button type="button" class="btn-secondary" onclick="clearForm()">
           Clear
         </button>
@@ -471,13 +542,15 @@
       // Validate, then save before navigating to results
       form.addEventListener("submit", (e) => {
         // Clear previous error states
-        form.querySelectorAll(".field-error").forEach((el) => el.classList.remove("field-error"));
+        form
+          .querySelectorAll(".field-error")
+          .forEach((el) => el.classList.remove("field-error"));
         const submitError = document.getElementById("submit-error");
         submitError.textContent = "";
 
-        const empty = [...form.querySelectorAll('input[type="number"][name]')].filter(
-          (el) => el.value === "",
-        );
+        const empty = [
+          ...form.querySelectorAll('input[type="number"][name]'),
+        ].filter((el) => el.value === "");
         if (empty.length > 0) {
           e.preventDefault();
           empty.forEach((el) => el.classList.add("field-error"));
@@ -530,6 +603,57 @@
       function set(name, value) {
         const el = document.querySelector(`[name="${name}"]`);
         if (el) el.value = value;
+      }
+
+      async function autofill() {
+        const season = parseInt(document.getElementById("season").value);
+        const btn = document.getElementById("autofill-btn");
+        btn.disabled = true;
+        btn.textContent = "Fetching…";
+
+        const players = [];
+        ["home", "away"].forEach((team) => {
+          const spName = form.querySelector(`[name="${team}_sp_player_name"]`);
+          const spManual = document.getElementById(`${team}_sp_manual`);
+          if (spName && spName.value.trim() && !spManual.checked) {
+            players.push({
+              slot: `${team}_sp`,
+              name: spName.value.trim(),
+              kind: "pitcher",
+            });
+          }
+          for (let n = 1; n <= 9; n++) {
+            const batName = form.querySelector(
+              `[name="${team}_bat${n}_player_name"]`,
+            );
+            const batManual = document.getElementById(`${team}_bat${n}_manual`);
+            if (batName && batName.value.trim() && !batManual.checked) {
+              players.push({
+                slot: `${team}_bat${n}`,
+                name: batName.value.trim(),
+                kind: "batter",
+              });
+            }
+          }
+        });
+
+        if (players.length) {
+          try {
+            const res = await fetch("/autofill", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ season, players }),
+            });
+            if (!res.ok) throw new Error("Request failed");
+            const stats = await res.json();
+            Object.entries(stats).forEach(([field, val]) => set(field, val));
+          } catch (e) {
+            console.error("Auto-fill failed:", e);
+          }
+        }
+
+        btn.disabled = false;
+        btn.textContent = "Auto-fill Stats";
       }
     </script>
   </body>
