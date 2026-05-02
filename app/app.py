@@ -1,7 +1,6 @@
 from flask import Flask, redirect, render_template, request, url_for
 import joblib
 import numpy as np
-import os
 
 app = Flask(__name__)
 
@@ -10,10 +9,7 @@ PITCHING_STATS = ["ERA", "WHIP", "SO9", "SO/W", "IP"]
 PITCHING_LOWER_IS_BETTER = {"ERA", "WHIP"}
 TEAMS = ["away", "home"]
 
-DEFAULT_MODEL_PATH = "./models/elastic-model.pkl"
-
-MODEL_PATH = DEFAULT_MODEL_PATH
-
+MODEL_PATH = "./models/model.pkl"
 MODEL = joblib.load(MODEL_PATH)
 
 def run_model(_features: dict) -> dict:
