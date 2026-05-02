@@ -5,7 +5,7 @@ from pathlib import Path
 # Paths — relative to model/
 TRAIN_PATH  = Path("data/train_features.parquet")
 TEST_PATH   = Path("data/test_features.parquet")
-OUTPUT_PATH = Path("model.pkl")  # app expects model/model.pkl
+OUTPUT_PATH = Path("../app/models/model.pkl")  # app expects model/model.pkl
 
 # Feature engineering
 # USE_DIFFERENTIAL : True  → 59 home-minus-away diff features (recommended)

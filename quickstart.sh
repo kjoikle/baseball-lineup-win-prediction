@@ -10,7 +10,7 @@ echo "=== MLB Win Predictor — Quickstart ==="
 echo ""
 echo "[1/4] Setting up virtual environment..."
 if [ ! -d "$VENV" ]; then
-    python -m venv "$VENV"
+    python3 -m venv "$VENV"
     echo "      Created .venv"
 else
     echo "      .venv already exists, skipping"
@@ -57,13 +57,12 @@ fi
 echo ""
 echo "[4/4] Checking for model.pkl..."
 
-if [ ! -f "$ROOT/model/model.pkl" ]; then
+if [ ! -f "$ROOT/app/models/model.pkl" ]; then
     echo ""
-    echo "  model/model.pkl not found. Train the model first:"
-    echo "    jupyter notebook model/test_model.ipynb"
+    echo "  app/models/model.pkl not found. Training model now..."
+    cd "$ROOT/model"
+    python train.py
     echo ""
-    echo "  Then re-run this script to start the app."
-    exit 1
 fi
 
 echo "      Found. Starting app at http://localhost:5000 ..."

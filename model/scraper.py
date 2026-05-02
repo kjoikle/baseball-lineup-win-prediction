@@ -462,8 +462,20 @@ def main(time_window="full_current_season", window_days=30):
         data/train_features.parquet  (2023-2024 games)
         data/test_features.parquet   (2025 games)
     """
+
+    # ask user to skip pipeline if train/test features already exist
+    test_features_path = DATA_DIR / "test_features.parquet"
+    train_features_path = DATA_DIR / "train_features.parquet"
+    if test_features_path.exists() and train_features_path.exists():
+        print(f"Found existing {test_features_path} and {train_features_path}.")
+        response = input("Do you want to re-run the full data pipeline and override current features? (y/n): ").strip().lower()
+        if response != 'y':
+            print("Skipping data pipeline. Exiting.")
+            return
+
     # ── Step 1: Parse Gamelogs ──────────────────────────────────────────────
     print("Step 1 — Parsing gamelogs...")
+
     games = parse_gamelogs(GAMELOG_FILES)
     print(f"  Parsed {len(games)} games ({games['date'].min().date()} → {games['date'].max().date()})")
     games.to_csv(DATA_DIR / "games.csv", index=False)
