@@ -1,6 +1,9 @@
 .venv
 data/*
 !data/README.md
+!data/gl*
+!data/gamelog_col_description.txt
 .claude
 .ipynb_checkpoints
 model.pkl
+__pycache__/
