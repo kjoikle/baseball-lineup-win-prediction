@@ -1,10 +1,12 @@
 # App
 
-Flask web app for predicting MLB home team win probability. Takes manual stat input for both lineups (1 starting pitcher + 9 batters per team) and returns the predicted winner.
+Flask web app for predicting MLB home team win probability. Takes lineup stat input for both teams (1 starting pitcher + 9 batters per team) and returns the predicted winner with win probability.
+
+The application is deployed here: https://baseball-lineup-win-prediction.vercel.app
 
 ## Prerequisites
 
-`model/model.pkl` must exist. Run the model pipeline first if it doesn't — see [model/README.md](../model/README.md). If you need to change the path to the model:
+`models/model.pkl` must exist. Run the model training pipeline first if it doesn't — see [model/README.md](../model/README.md). If you need to change the path to the model:
 
 ```bash
 cp .env.example .env
@@ -31,18 +33,16 @@ python app.py
 
 Then open [http://localhost:5000](http://localhost:5000).
 
-## Input
+## Using the App
 
-For each team, enter stats for the starting pitcher and 9 batters:
+### Fill in lineup stats
 
-| Role              | Stats                      |
-| ----------------- | -------------------------- |
-| Starting pitcher  | ERA, WHIP, SO9, SO/W, IP   |
-| Each batter (1–9) | BA, OBP, SLG, OPS, K%, BB% |
+Stats should reflect the players' **season-to-date or recent performance** at the time of the game being predicted. The model was trained on full-season stats (2023–2024), so using full-season stats will produce the most reliable results.
 
-All fields are required. The model computes home-minus-away diffs internally and passes them to the classifier.
+Additionally you can click "Fill Random Stats" to auto generate stats in a reasonable range.
 
-## Notes
+### Autofill by player name
 
-- The app currently requires manual stat entry. A planned improvement is to fetch stats automatically via the MLB Stats API or Baseball Reference.
-- The model file is loaded once at startup from `../model/model.pkl`.
+Instead of entering stats manually, you can type a player's name into the name field next to each slot and click **Autofill**. The app will look up the player's current-season stats from the MLB Stats API and populate the fields automatically.
+
+Names must match the MLB Stats API spelling (e.g., "Shohei Ohtani", not "Ohtani").
