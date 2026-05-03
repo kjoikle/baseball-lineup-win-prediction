@@ -15,4 +15,6 @@ bash quickstart.sh
 
 The script sets up a shared `.venv`, installs all dependencies, runs the data pipeline, and starts the app. It will stop and tell you what to do if any manual steps are needed (gamelogs download, model training).
 
+The only prerequisite is Python 3.10+
+
 See [model/data/README.md](model/data/README.md) for data download instructions and [model/README.md](model/README.md) / [app/README.md](app/README.md) for details on each component.
