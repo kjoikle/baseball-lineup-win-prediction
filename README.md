@@ -17,4 +17,6 @@ The script sets up a shared `.venv`, installs all dependencies, runs the data pi
 
 The only prerequisite is Python 3.10+
 
+Additionally, a model is already saved in [app/models]. This will be loaded in automatically when the app is run.
+
 See [model/data/README.md](model/data/README.md) for data download instructions and [model/README.md](model/README.md) / [app/README.md](app/README.md) for details on each component.
