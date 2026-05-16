@@ -936,9 +936,16 @@
           btn.type = "button";
           btn.className = "modal-game-btn";
           const live = g.status === "Live";
-          btn.innerHTML =
-            `<span>${g.away} @ ${g.home}</span>` +
-            `<span class="status-badge ${live ? "status-live" : "status-final"}">${live ? "🔴 Live" : "Final"}</span>`;
+
+          const matchup = document.createElement("span");
+          matchup.textContent = `${g.away} @ ${g.home}`;
+
+          const statusBadge = document.createElement("span");
+          statusBadge.className = `status-badge ${live ? "status-live" : "status-final"}`;
+          statusBadge.textContent = live ? "🔴 Live" : "Final";
+
+          btn.appendChild(matchup);
+          btn.appendChild(statusBadge);
           btn.addEventListener("click", () => importGame(g));
           modalGamesList.appendChild(btn);
         });
