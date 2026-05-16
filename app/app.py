@@ -9,7 +9,6 @@ mlb = mlbstatsapi.Mlb()
 
 _players_cache: dict[int, list[str]] = {}
 
-
 def current_season() -> int:
     return datetime.date.today().year
 
@@ -78,10 +77,52 @@ def fetch_player_pitching_stats(player_id: int, season: int) -> dict | None:
     }
 
 
+@app.route("/games/today")
+def games_today():
+    """
+    Returns:
+        list: A list of live/finalized games for today.
+    """
+    today = datetime.date.today().strftime("%m/%d/%Y")
+    games = mlb.get_scheduled_games_by_date(today)
+    result = []
+    for g in games:
+        state = g.status.abstract_game_state
+        if state not in ("Live", "Final"):
+            continue
+        result.append({
+            "game_pk": g.game_pk,
+            "status": state,
+            "away": g.teams.away.team.name,
+            "home": g.teams.home.team.name,
+        })
+    return jsonify(result)
+
+
+@app.route("/game/<int:game_pk>/lineup")
+def game_lineup(game_pk):
+    box = mlb.get_game_box_score(game_pk)
+
+    def resolve(team):
+        batters = []
+        for pid in team.batting_order:
+            p = team.players.get(f"ID{pid}")
+            batters.append({"id": pid, "name": p.person.full_name if p else ""})
+        sp_id = team.pitchers[0] if team.pitchers else None
+        sp_player = team.players.get(f"ID{sp_id}") if sp_id else None
+        return {
+            "team": team.team.name,
+            "sp": {"id": sp_id, "name": sp_player.person.full_name if sp_player else ""},
+            "batters": batters,
+        }
+
+    return jsonify({"away": resolve(box.teams.away), "home": resolve(box.teams.home)})
+
+
 @app.route("/autofill", methods=["POST"])
 def autofill():
     data = request.get_json(silent=True) or {}
-    season = int(data.get("season", 2025))
+    season = int(data.get("season", current_season()))
     players = data.get("players", [])
 
     result = {}
@@ -91,10 +132,9 @@ def autofill():
         kind = player.get("kind", "")
         if not name or not slot:
             continue
-        ids = mlb.get_people_id(name)
-        if not ids:
+        pid = player.get("player_id") or (mlb.get_people_id(name) or [None])[0]
+        if not pid:
             continue
-        pid = ids[0]
         try:
             stats = fetch_player_pitching_stats(pid, season) if kind == "pitcher" \
                     else fetch_player_hitting_stats(pid, season)

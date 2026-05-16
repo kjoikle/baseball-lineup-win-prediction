@@ -46,3 +46,9 @@ Additionally you can click "Fill Random Stats" to auto generate stats in a reaso
 Instead of entering stats manually, you can type a player's name into the name field next to each slot and click **Autofill**. The app will look up the player's current-season stats from the MLB Stats API and populate the fields automatically.
 
 Names must match the MLB Stats API spelling (e.g., "Shohei Ohtani", not "Ohtani").
+
+## Todo Items
+
+- Add a tab to import past games and check how the model's prediction compares to reality
+
+- Implement the All-Time Lineups Tab
