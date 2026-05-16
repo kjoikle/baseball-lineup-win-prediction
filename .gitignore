@@ -2,3 +2,5 @@
 !.gitignore
 data/!gl*
 /*/__pycache__/
+app/data/player_seasons.json
+.build_cache/

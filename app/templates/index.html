@@ -418,7 +418,7 @@
 
     <nav class="tab-nav">
       <button class="tab-btn" data-tab="current">Single Season</button>
-      <button class="tab-btn" data-tab="alltime" disabled title="Coming soon">
+      <button class="tab-btn" data-tab="alltime">
         All-Time Lineups
       </button>
     </nav>
@@ -684,10 +684,151 @@
     <!-- #tab-current -->
 
     <div id="tab-alltime" class="tab-panel">
-      <div class="coming-soon">
-        <h2>All-Time Lineups</h2>
-        <p>Build lineups from any player in MLB history. Coming soon.</p>
+      <div id="alltime-loading" style="padding:2rem 2rem 0; font-size:0.85rem; color:#888;">
+        Loading player database…
       </div>
+
+      <form id="alltime-form" method="POST" action="/predict">
+        <div class="matchup-bar">
+          <label for="alltime_away_team">Away</label>
+          <input
+            type="text"
+            id="alltime_away_team"
+            name="away_team"
+            placeholder="e.g. NYY"
+            maxlength="30"
+          />
+          <span class="vs">@</span>
+          <label for="alltime_home_team">Home</label>
+          <input
+            type="text"
+            id="alltime_home_team"
+            name="home_team"
+            placeholder="e.g. BOS"
+            maxlength="30"
+          />
+        </div>
+
+        <div class="columns">
+          {% for team, label in [("away", "Away"), ("home", "Home")] %}
+          <div class="team-col {{ team }}">
+            <h2>{{ label }} Lineup</h2>
+
+            <!-- Starting Pitcher -->
+            <div class="card">
+              <div class="card-title">Starting Pitcher</div>
+              <div class="player-select-slot">
+                <div class="player-name-row">
+                  <div class="autocomplete-wrapper">
+                    <input
+                      class="player-name-input alltime-player-input"
+                      type="text"
+                      name="{{ team }}_sp_player_name"
+                      placeholder="Loading…"
+                      disabled
+                      data-slot-prefix="{{ team }}_sp"
+                      data-kind="pitcher"
+                    />
+                  </div>
+                  <label class="manual-toggle">
+                    <input type="checkbox" id="at_{{ team }}_sp_manual" />
+                    manual
+                  </label>
+                </div>
+              </div>
+              <div class="stat-grid pitcher">
+                <div class="stat-field">
+                  <label>ERA</label>
+                  <input type="number" name="{{ team }}_sp_ERA" placeholder="4.00" min="0" max="30" step="any" />
+                </div>
+                <div class="stat-field">
+                  <label>WHIP</label>
+                  <input type="number" name="{{ team }}_sp_WHIP" placeholder="1.25" min="0" max="5" step="any" />
+                </div>
+                <div class="stat-field">
+                  <label>SO9</label>
+                  <input type="number" name="{{ team }}_sp_SO9" placeholder="9.0" min="0" max="20" step="any" />
+                </div>
+                <div class="stat-field">
+                  <label>SO/W</label>
+                  <input type="number" name="{{ team }}_sp_SO/W" placeholder="3.0" min="0" max="20" step="any" />
+                </div>
+                <div class="stat-field">
+                  <label>IP</label>
+                  <input type="number" name="{{ team }}_sp_IP" placeholder="150" min="0" max="300" step="any" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Batting Order -->
+            <div class="card">
+              <div class="card-title">Batting Order</div>
+              <div class="batting-order">
+                {% for n in range(1, 10) %}
+                <div class="batter-row">
+                  <div class="batter-header">
+                    <span class="batter-num">{{ n }}.</span>
+                    <div class="player-select-slot">
+                      <div class="player-name-row">
+                        <div class="autocomplete-wrapper">
+                          <input
+                            class="player-name-input alltime-player-input"
+                            type="text"
+                            name="{{ team }}_bat{{ n }}_player_name"
+                            placeholder="Loading…"
+                            disabled
+                            data-slot-prefix="{{ team }}_bat{{ n }}"
+                            data-kind="batter"
+                          />
+                        </div>
+                        <label class="manual-toggle">
+                          <input type="checkbox" id="at_{{ team }}_bat{{ n }}_manual" />
+                          manual
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="stat-grid">
+                    <div class="stat-field">
+                      <label>BA</label>
+                      <input type="number" name="{{ team }}_bat{{ n }}_BA" placeholder=".260" min="0" max="1" step="any" />
+                    </div>
+                    <div class="stat-field">
+                      <label>OBP</label>
+                      <input type="number" name="{{ team }}_bat{{ n }}_OBP" placeholder=".330" min="0" max="1" step="any" />
+                    </div>
+                    <div class="stat-field">
+                      <label>SLG</label>
+                      <input type="number" name="{{ team }}_bat{{ n }}_SLG" placeholder=".430" min="0" max="4" step="any" />
+                    </div>
+                    <div class="stat-field">
+                      <label>OPS</label>
+                      <input type="number" name="{{ team }}_bat{{ n }}_OPS" placeholder=".760" min="0" max="5" step="any" />
+                    </div>
+                    <div class="stat-field">
+                      <label>K%</label>
+                      <input type="number" name="{{ team }}_bat{{ n }}_K%" placeholder=".22" min="0" max="1" step="any" />
+                    </div>
+                    <div class="stat-field">
+                      <label>BB%</label>
+                      <input type="number" name="{{ team }}_bat{{ n }}_BB%" placeholder=".08" min="0" max="1" step="any" />
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="submit-bar">
+          <span class="submit-error" id="alltime-submit-error"></span>
+          <button type="button" class="btn-secondary" onclick="clearAlltimeForm()">Clear</button>
+          <button type="button" class="btn-secondary" onclick="fillAlltimeRandom()">Fill Random Stats</button>
+          <button type="submit" id="alltime-predict-btn">Predict Winner →</button>
+        </div>
+      </form>
     </div>
 
     <div id="import-modal-overlay" class="modal-overlay" hidden>
@@ -1023,6 +1164,163 @@
           console.error("Import autofill failed:", e);
         }
         setFetching(false);
+      }
+
+      // ── All-Time Lineups ─────────────────────────────────────────
+
+      const ALLTIME_STORAGE_KEY = "lineup_form_alltime";
+      const alltimeForm = document.getElementById("alltime-form");
+
+      let playerSeasons = null;  // null = not yet loaded
+      let batterNames = [];
+      let pitcherNames = [];
+
+      function loadPlayerSeasons() {
+        fetch("/data/player_seasons")
+          .then((r) => (r.ok ? r.json() : {}))
+          .then((data) => {
+            playerSeasons = data;
+            batterNames = Object.keys(data).filter((k) => data[k].kind === "batter");
+            pitcherNames = Object.keys(data).filter((k) => data[k].kind === "pitcher");
+            if (batterNames.length === 0 && pitcherNames.length === 0) {
+              document.getElementById("alltime-loading").textContent =
+                "Player database is empty — restart the server after running build_player_seasons.py.";
+              return;
+            }
+            document.querySelectorAll(".alltime-player-input").forEach((input) => {
+              const kind = input.dataset.kind;
+              input.disabled = false;
+              input.placeholder = kind === "pitcher" ? "Pitcher name (YYYY)" : "Batter name (YYYY)";
+              setupAlltimeAutocomplete(input, input.dataset.slotPrefix, kind);
+            });
+            document.getElementById("alltime-loading").hidden = true;
+
+            const saved = sessionStorage.getItem(ALLTIME_STORAGE_KEY);
+            if (saved) {
+              const data2 = JSON.parse(saved);
+              alltimeForm.querySelectorAll("input[name]").forEach((el) => {
+                if (el.name in data2) el.value = data2[el.name];
+              });
+            }
+          })
+          .catch(() => {
+            document.getElementById("alltime-loading").textContent =
+              "Could not load player database. Run build_player_seasons.py first.";
+          });
+      }
+
+      // Lazy-load when the tab is first activated, or immediately if the page
+      // loaded directly on #alltime (e.g. after a reload on that tab).
+      (function hookAlltimeTab() {
+        const btn = document.querySelector(".tab-btn[data-tab='alltime']");
+        btn.addEventListener("click", () => {
+          if (playerSeasons === null) loadPlayerSeasons();
+        });
+        if ((location.hash.replace("#", "") || "current") === "alltime") {
+          loadPlayerSeasons();
+        }
+      })();
+
+      function setupAlltimeAutocomplete(input, slotPrefix, kind) {
+        const names = kind === "pitcher" ? pitcherNames : batterNames;
+        const dropdown = document.createElement("div");
+        dropdown.className = "autocomplete-dropdown";
+        dropdown.hidden = true;
+        input.parentElement.appendChild(dropdown);
+
+        input.addEventListener("input", () => {
+          const manualCheckId = `at_${slotPrefix}_manual`;
+          const manualCheck = document.getElementById(manualCheckId);
+          if (manualCheck && manualCheck.checked) { dropdown.hidden = true; return; }
+
+          const q = input.value.trim().toLowerCase();
+          if (q.length < 3) { dropdown.hidden = true; return; }
+          const matches = names.filter((n) => n.toLowerCase().includes(q)).slice(0, 5);
+          if (!matches.length) { dropdown.hidden = true; return; }
+
+          dropdown.innerHTML = "";
+          matches.forEach((name) => {
+            const item = document.createElement("div");
+            item.className = "autocomplete-item";
+            item.textContent = name;
+            item.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              selectAlltimePlayer(name, slotPrefix, input, dropdown);
+            });
+            dropdown.appendChild(item);
+          });
+          dropdown.hidden = false;
+        });
+
+        input.addEventListener("blur", () => {
+          setTimeout(() => { dropdown.hidden = true; }, 150);
+        });
+      }
+
+      function selectAlltimePlayer(name, slotPrefix, input, dropdown) {
+        input.value = name;
+        dropdown.hidden = true;
+        const stats = playerSeasons && playerSeasons[name];
+        if (!stats) return;
+        Object.entries(stats).forEach(([stat, val]) => {
+          if (stat === "kind") return;
+          const el = alltimeForm.querySelector(`[name="${slotPrefix}_${stat}"]`);
+          if (el) el.value = val;
+        });
+      }
+
+      alltimeForm.addEventListener("submit", (e) => {
+        alltimeForm.querySelectorAll(".field-error").forEach((el) => el.classList.remove("field-error"));
+        const submitError = document.getElementById("alltime-submit-error");
+        submitError.textContent = "";
+
+        const empty = [...alltimeForm.querySelectorAll('input[type="number"][name]')].filter(
+          (el) => el.value === ""
+        );
+        if (empty.length > 0) {
+          e.preventDefault();
+          empty.forEach((el) => el.classList.add("field-error"));
+          submitError.textContent = `${empty.length} stat field${empty.length !== 1 ? "s" : ""} missing`;
+          return;
+        }
+
+        const formData = {};
+        alltimeForm.querySelectorAll("input[name]").forEach((el) => {
+          formData[el.name] = el.value;
+        });
+        sessionStorage.setItem(ALLTIME_STORAGE_KEY, JSON.stringify(formData));
+      });
+
+      function clearAlltimeForm() {
+        alltimeForm.querySelectorAll("input[name]").forEach((el) => (el.value = ""));
+        sessionStorage.removeItem(ALLTIME_STORAGE_KEY);
+      }
+
+      function fillAlltimeRandom() {
+        const teams = ["home", "away"];
+        const f = alltimeForm;
+        function setAt(name, value) {
+          const el = f.querySelector(`[name="${name}"]`);
+          if (el) el.value = value;
+        }
+        teams.forEach((team) => {
+          setAt(`${team}_sp_ERA`, rand(2.5, 5.5, 2));
+          setAt(`${team}_sp_WHIP`, rand(0.95, 1.65, 2));
+          setAt(`${team}_sp_SO9`, rand(6.0, 13.0, 1));
+          setAt(`${team}_sp_SO/W`, rand(1.5, 5.0, 2));
+          setAt(`${team}_sp_IP`, rand(50, 200, 1));
+          for (let n = 1; n <= 9; n++) {
+            const ba = rand(0.21, 0.32, 3);
+            const obp = parseFloat(Math.min(ba + rand(0.045, 0.11, 3), 0.5).toFixed(3));
+            const slg = parseFloat((ba + rand(0.07, 0.26, 3)).toFixed(3));
+            setAt(`${team}_bat${n}_BA`, ba);
+            setAt(`${team}_bat${n}_OBP`, obp);
+            setAt(`${team}_bat${n}_SLG`, slg);
+            setAt(`${team}_bat${n}_OPS`, parseFloat((obp + slg).toFixed(3)));
+            setAt(`${team}_bat${n}_K%`, rand(0.1, 0.33, 2));
+            setAt(`${team}_bat${n}_BB%`, rand(0.04, 0.15, 2));
+          }
+        });
       }
 
       async function autofill() {

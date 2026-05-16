@@ -1,4 +1,6 @@
 import datetime
+import json
+import os
 import mlbstatsapi
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 import joblib
@@ -6,6 +8,13 @@ import numpy as np
 
 app = Flask(__name__)
 mlb = mlbstatsapi.Mlb()
+
+_PLAYER_SEASONS_PATH = os.path.join(os.path.dirname(__file__), "data", "player_seasons.json")
+try:
+    with open(_PLAYER_SEASONS_PATH) as _f:
+        PLAYER_SEASONS = json.load(_f)
+except FileNotFoundError:
+    PLAYER_SEASONS = {}
 
 _players_cache: dict[int, list[str]] = {}
 
@@ -164,6 +173,11 @@ def autofill():
 def players():
     year = request.args.get("year", current_season(), type=int)
     return jsonify(get_players_for_season(year))
+
+
+@app.route("/data/player_seasons")
+def player_seasons():
+    return jsonify(PLAYER_SEASONS)
 
 
 def run_model(_features: dict) -> dict:
