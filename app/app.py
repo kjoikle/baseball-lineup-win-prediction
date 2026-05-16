@@ -74,24 +74,24 @@ def fetch_player_pitching_stats(player_id: int, season: int) -> dict | None:
     }
 
 
-@app.route("/games/today")
-def games_today():
-    """
-    Returns:
-        list: A list of live/finalized games for today.
-    """
-    today = datetime.date.today().strftime("%m/%d/%Y")
-    games = mlb.get_scheduled_games_by_date(today)
+@app.route("/games/date/<date_str>")
+def games_by_date(date_str):
+    dt = datetime.date.fromisoformat(date_str)
+    is_today = dt == datetime.date.today()
+    games = mlb.get_scheduled_games_by_date(dt.strftime("%m/%d/%Y"))
     result = []
     for g in games:
         state = g.status.abstract_game_state
         if state not in ("Live", "Final"):
+            continue
+        if not is_today and state != "Final":
             continue
         result.append({
             "game_pk": g.game_pk,
             "status": state,
             "away": g.teams.away.team.name,
             "home": g.teams.home.team.name,
+            "game_year": dt.year,
         })
     return jsonify(result)
 
@@ -113,7 +113,20 @@ def game_lineup(game_pk):
             "batters": batters,
         }
 
-    return jsonify({"away": resolve(box.teams.away), "home": resolve(box.teams.home)})
+    payload = {"away": resolve(box.teams.away), "home": resolve(box.teams.home)}
+
+    if request.args.get("include_score") == "true":
+        try:
+            linescore = mlb._mlb_adapter_v1.get(
+                endpoint=f"game/{game_pk}/linescore", ep_params={}
+            ).data
+            payload["home_runs"] = linescore.get("teams", {}).get("home", {}).get("runs")
+            payload["away_runs"] = linescore.get("teams", {}).get("away", {}).get("runs")
+        except Exception:
+            payload["home_runs"] = None
+            payload["away_runs"] = None
+
+    return jsonify(payload)
 
 
 @app.route("/autofill", methods=["POST"])
@@ -220,6 +233,9 @@ def predict():
         home_team += " (Home)"
         away_team += " (Away)"
 
+    actual_away_runs = request.form.get("actual_away_runs", type=int)
+    actual_home_runs = request.form.get("actual_home_runs", type=int)
+
     try:
         features = parse_features(request.form)
         result = run_model(features)
@@ -228,10 +244,15 @@ def predict():
             url_for("index", error="Prediction failed. Please check your inputs and try again.")
         )
 
-    winner = home_team if result["home_win_prob"] >= 0.5 else away_team
-    winner_win_prob = (
-        result["home_win_prob"] if winner == home_team else 1 - result["home_win_prob"]
-    )
+    home_win_prob = result["home_win_prob"]
+    winner = home_team if home_win_prob >= 0.5 else away_team
+    winner_win_prob = home_win_prob if winner == home_team else 1 - home_win_prob
+
+    prediction_correct = None
+    if actual_away_runs is not None and actual_home_runs is not None:
+        actual_home_won = actual_home_runs > actual_away_runs
+        model_home_won = home_win_prob >= 0.5
+        prediction_correct = actual_home_won == model_home_won
 
     return render_template(
         "result.html",
@@ -239,6 +260,9 @@ def predict():
         away_team=away_team,
         winner=winner,
         winner_win_prob=winner_win_prob,
+        actual_away_runs=actual_away_runs,
+        actual_home_runs=actual_home_runs,
+        prediction_correct=prediction_correct,
     )
 
 

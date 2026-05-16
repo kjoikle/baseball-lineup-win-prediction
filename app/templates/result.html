@@ -73,6 +73,20 @@
       a:hover {
         text-decoration: underline;
       }
+      .actual-score {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #222;
+        margin: 0.6rem 0 0.4rem;
+      }
+      .score-num { color: #1a3055; }
+      .verdict {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-top: 0.3rem;
+      }
+      .verdict.correct   { color: #2a7a2a; }
+      .verdict.incorrect { color: #b03030; }
     </style>
   </head>
   <body>
@@ -88,6 +102,21 @@
       <div class="prob pending">Model not yet connected</div>
       {% endif %}
     </div>
+    {% if actual_away_runs is not none and actual_home_runs is not none %}
+    <div class="card">
+      <div class="result-label">Actual Result</div>
+      <div class="actual-score">
+        {{ away_team }} <span class="score-num">{{ actual_away_runs }}</span>
+        &ndash;
+        <span class="score-num">{{ actual_home_runs }}</span> {{ home_team }}
+      </div>
+      {% if prediction_correct %}
+      <div class="verdict correct">✓ Correct prediction</div>
+      {% else %}
+      <div class="verdict incorrect">✗ Incorrect prediction</div>
+      {% endif %}
+    </div>
+    {% endif %}
     <a href="/">← Enter another lineup</a>
   </body>
 </html>

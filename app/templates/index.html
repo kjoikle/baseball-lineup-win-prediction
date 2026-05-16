@@ -335,6 +335,80 @@
         margin-bottom: 0.5rem;
         color: #444;
       }
+
+      .import-btn {
+        background: #1a3055;
+        border: none;
+        border-radius: 4px;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        padding: 0.35rem 0.8rem;
+        white-space: nowrap;
+      }
+      .import-btn:hover { background: #254470; }
+
+      .modal-overlay {
+        align-items: center;
+        background: rgba(0,0,0,0.35);
+        bottom: 0;
+        display: flex;
+        justify-content: center;
+        left: 0;
+        position: fixed;
+        right: 0;
+        top: 0;
+        z-index: 100;
+      }
+      .modal-overlay[hidden] { display: none; }
+      .modal-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        max-width: 420px;
+        padding: 1.5rem;
+        width: 90%;
+      }
+      .modal-header {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+      .modal-header button {
+        background: none;
+        border: none;
+        color: #888;
+        cursor: pointer;
+        font-size: 1.4rem;
+        line-height: 1;
+        padding: 0;
+      }
+      .modal-header button:hover { color: #333; }
+      .modal-game-btn {
+        align-items: center;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        font-size: 0.9rem;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+        width: 100%;
+      }
+      .modal-game-btn:hover { background: #f0f4f8; }
+      .status-badge {
+        border-radius: 3px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.15rem 0.4rem;
+        white-space: nowrap;
+      }
+      .status-live  { background: #ffeaea; color: #c00; }
+      .status-final { background: #eaf2ea; color: #2a6e2a; }
     </style>
   </head>
   <body>
@@ -383,10 +457,7 @@
             maxlength="30"
           />
           <span class="vs">·</span>
-          <label for="game-picker">Today's Game</label>
-          <select id="game-picker">
-            <option value="">Loading…</option>
-          </select>
+          <button type="button" id="import-game-btn" class="import-btn">Import Game</button>
           <span class="vs">·</span>
           <label for="season">Season</label>
           <select id="season">
@@ -606,6 +677,8 @@
           </button>
           <button type="submit" id="predict-btn">Predict Winner →</button>
         </div>
+        <input type="hidden" name="actual_away_runs" id="actual_away_runs_input">
+        <input type="hidden" name="actual_home_runs" id="actual_home_runs_input">
       </form>
     </div>
     <!-- #tab-current -->
@@ -614,6 +687,24 @@
       <div class="coming-soon">
         <h2>All-Time Lineups</h2>
         <p>Build lineups from any player in MLB history. Coming soon.</p>
+      </div>
+    </div>
+
+    <div id="import-modal-overlay" class="modal-overlay" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-header">
+          <span id="modal-title" style="font-weight:600; font-size:1rem;">Import a Game</span>
+          <button type="button" id="modal-close-btn" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1rem;">
+            <label for="modal-date-picker" style="font-size:0.9rem; color:#555; font-weight:600;">Date</label>
+            <input type="date" id="modal-date-picker"
+              style="padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.9rem;">
+          </div>
+          <div id="modal-games-status" style="color:#888; font-size:0.85rem; margin-bottom:0.5rem;"></div>
+          <div id="modal-games-list" style="display:flex; flex-direction:column; gap:0.4rem; max-height:300px; overflow-y:auto;"></div>
+        </div>
       </div>
     </div>
 
@@ -787,25 +878,6 @@
         if (el) el.value = value;
       }
 
-      async function loadTodaysGames() {
-        const picker = document.getElementById("game-picker");
-        const games = await fetch("/games/today")
-          .then((r) => r.json())
-          .catch(() => []);
-        picker.innerHTML =
-          '<option value="">— Optionally import a final/live game from today —</option>';
-        games.forEach((g) => {
-          const opt = document.createElement("option");
-          opt.value = g.game_pk;
-          opt.textContent = `${g.status === "Live" ? "🔴 " : ""}${g.away} @ ${g.home}`;
-          picker.appendChild(opt);
-        });
-        if (!games.length) {
-          picker.innerHTML = '<option value="">No games today</option>';
-        }
-      }
-      loadTodaysGames();
-
       function setFetching(fetching) {
         const autofillBtn = document.getElementById("autofill-btn");
         const predictBtn = document.getElementById("predict-btn");
@@ -814,69 +886,116 @@
         predictBtn.disabled = fetching;
       }
 
-      document
-        .getElementById("game-picker")
-        .addEventListener("change", async function () {
-          const pk = this.value;
-          if (!pk) return;
+      // ── Import Game Modal ────────────────────────────────────────
 
-          // Clear existing names and stats before populating the new game
-          form
-            .querySelectorAll(".player-name-input")
-            .forEach((el) => (el.value = ""));
-          form
-            .querySelectorAll('input[type="number"]')
-            .forEach((el) => (el.value = ""));
+      const modalOverlay   = document.getElementById("import-modal-overlay");
+      const modalDateInput = document.getElementById("modal-date-picker");
+      const modalGamesList = document.getElementById("modal-games-list");
+      const modalStatus    = document.getElementById("modal-games-status");
 
-          const data = await fetch(`/game/${pk}/lineup`)
-            .then((r) => r.json())
-            .catch(() => null);
-          if (!data) return;
+      (function () {
+        const today = new Date().toISOString().split("T")[0];
+        modalDateInput.value = today;
+        modalDateInput.max   = today;
+      })();
 
-          set_input("away_team", data.away.team);
-          set_input("home_team", data.home.team);
+      function openModal() {
+        modalOverlay.hidden = false;
+        loadGamesForDate(modalDateInput.value);
+      }
 
-          ["away", "home"].forEach((side) => {
-            const lineup = data[side];
-            set_input(`${side}_sp_player_name`, lineup.sp.name);
-            lineup.batters.forEach((b, i) =>
-              set_input(`${side}_bat${i + 1}_player_name`, b.name),
-            );
-          });
+      function closeModal() {
+        modalOverlay.hidden = true;
+      }
 
-          const season = parseInt(document.getElementById("season").value);
-          const players = [];
-          ["away", "home"].forEach((side) => {
-            const lineup = data[side];
-            players.push({
-              slot: `${side}_sp`,
-              name: lineup.sp.name,
-              kind: "pitcher",
-              player_id: lineup.sp.id,
-            });
-            lineup.batters.forEach((b, i) => {
-              players.push({
-                slot: `${side}_bat${i + 1}`,
-                name: b.name,
-                kind: "batter",
-                player_id: b.id,
-              });
-            });
-          });
+      document.getElementById("import-game-btn").addEventListener("click", openModal);
+      document.getElementById("modal-close-btn").addEventListener("click", closeModal);
+      modalOverlay.addEventListener("click", (e) => {
+        if (e.target === modalOverlay) closeModal();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+      });
+      modalDateInput.addEventListener("change", () => loadGamesForDate(modalDateInput.value));
 
-          setFetching(true);
-          try {
-            const stats = await fetch("/autofill", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ season, players }),
-            }).then((r) => r.json());
-            Object.entries(stats).forEach(([field, val]) => set(field, val));
-          } catch (e) {
-            console.error("Game import autofill failed:", e);
-          }
-          setFetching(false);
+      async function loadGamesForDate(dateStr) {
+        if (!dateStr) return;
+        modalStatus.textContent = "Loading…";
+        modalGamesList.innerHTML = "";
+
+        const games = await fetch(`/games/date/${dateStr}`).then((r) => r.json()).catch(() => []);
+
+        if (!games.length) {
+          modalStatus.textContent = "No games on this date.";
+          return;
+        }
+        modalStatus.textContent = "";
+
+        games.forEach((g) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "modal-game-btn";
+          const live = g.status === "Live";
+          btn.innerHTML =
+            `<span>${g.away} @ ${g.home}</span>` +
+            `<span class="status-badge ${live ? "status-live" : "status-final"}">${live ? "🔴 Live" : "Final"}</span>`;
+          btn.addEventListener("click", () => importGame(g));
+          modalGamesList.appendChild(btn);
         });
+      }
+
+      async function importGame(g) {
+        closeModal();
+
+        form.querySelectorAll(".player-name-input").forEach((el) => (el.value = ""));
+        form.querySelectorAll('input[type="number"]').forEach((el) => (el.value = ""));
+        document.getElementById("actual_away_runs_input").value = "";
+        document.getElementById("actual_home_runs_input").value = "";
+
+        const isFinal = g.status === "Final";
+        const url = `/game/${g.game_pk}/lineup${isFinal ? "?include_score=true" : ""}`;
+        const data = await fetch(url).then((r) => r.json()).catch(() => null);
+        if (!data) return;
+
+        set_input("away_team", data.away.team);
+        set_input("home_team", data.home.team);
+
+        ["away", "home"].forEach((side) => {
+          const ld = data[side];
+          set_input(`${side}_sp_player_name`, ld.sp.name);
+          ld.batters.forEach((b, i) => set_input(`${side}_bat${i + 1}_player_name`, b.name));
+        });
+
+        if (isFinal && data.home_runs != null && data.away_runs != null) {
+          document.getElementById("actual_home_runs_input").value = data.home_runs;
+          document.getElementById("actual_away_runs_input").value = data.away_runs;
+        }
+
+        const seasonEl = document.getElementById("season");
+        if (seasonEl) seasonEl.value = g.game_year;
+
+        const players = [];
+        ["away", "home"].forEach((side) => {
+          const ld = data[side];
+          players.push({ slot: `${side}_sp`, name: ld.sp.name, kind: "pitcher", player_id: ld.sp.id });
+          ld.batters.forEach((b, i) =>
+            players.push({ slot: `${side}_bat${i + 1}`, name: b.name, kind: "batter", player_id: b.id }),
+          );
+        });
+
+        setFetching(true);
+        try {
+          const stats = await fetch("/autofill", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ season: g.game_year, players }),
+          }).then((r) => r.json());
+          Object.entries(stats).forEach(([field, val]) => set(field, val));
+        } catch (e) {
+          console.error("Import autofill failed:", e);
+        }
+        setFetching(false);
+      }
 
       async function autofill() {
         const season = parseInt(document.getElementById("season").value);
