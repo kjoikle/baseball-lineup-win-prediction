@@ -2,6 +2,8 @@
 
 Binary classifier predicting home team win probability from MLB starting lineups. Built with Retrosheet gamelogs (2023–2025) and pybaseball stats.
 
+Hosted App: https://baseball-lineup-win-prediction-d14wzrhga-kjoikle-1530s-projects.vercel.app/
+
 ## Structure
 
 - [model/](model/) — data pipeline (scraper), feature engineering, and model training
