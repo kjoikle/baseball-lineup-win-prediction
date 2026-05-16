@@ -76,7 +76,10 @@ def fetch_player_pitching_stats(player_id: int, season: int) -> dict | None:
 
 @app.route("/games/date/<date_str>")
 def games_by_date(date_str):
-    dt = datetime.date.fromisoformat(date_str)
+    try:
+        dt = datetime.date.fromisoformat(date_str)
+    except ValueError:
+        return jsonify({"error": "Invalid date. Use ISO format YYYY-MM-DD."}), 400
     is_today = dt == datetime.date.today()
     games = mlb.get_scheduled_games_by_date(dt.strftime("%m/%d/%Y"))
     result = []
