@@ -797,12 +797,13 @@
         .querySelectorAll(".player-name-input")
         .forEach(setupAutocomplete);
 
-      // Restore saved values on page load
+      // Restore saved values on page load (hidden inputs excluded — they hold
+      // transient imported-game state that must not survive across sessions)
       document.addEventListener("DOMContentLoaded", () => {
         const saved = sessionStorage.getItem(STORAGE_KEY);
         if (!saved) return;
         const data = JSON.parse(saved);
-        form.querySelectorAll("input[name]").forEach((el) => {
+        form.querySelectorAll("input[name]:not([type='hidden'])").forEach((el) => {
           if (el.name in data) el.value = data[el.name];
         });
       });
@@ -827,7 +828,7 @@
         }
 
         const data = {};
-        form.querySelectorAll("input[name]").forEach((el) => {
+        form.querySelectorAll("input[name]:not([type='hidden'])").forEach((el) => {
           data[el.name] = el.value;
         });
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -899,13 +900,18 @@
         modalDateInput.max   = today;
       })();
 
+      let lastFocus = null;
+
       function openModal() {
+        lastFocus = document.activeElement;
         modalOverlay.hidden = false;
+        document.getElementById("modal-close-btn").focus();
         loadGamesForDate(modalDateInput.value);
       }
 
       function closeModal() {
         modalOverlay.hidden = true;
+        if (lastFocus) lastFocus.focus();
       }
 
       document.getElementById("import-game-btn").addEventListener("click", openModal);
@@ -914,7 +920,22 @@
         if (e.target === modalOverlay) closeModal();
       });
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeModal();
+        if (e.key === "Escape" && !modalOverlay.hidden) closeModal();
+      });
+      // Keep focus inside the dialog while it's open
+      modalOverlay.addEventListener("keydown", (e) => {
+        if (e.key !== "Tab") return;
+        const focusable = [...modalOverlay.querySelectorAll("button, input")].filter(
+          (el) => !el.disabled,
+        );
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last  = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+          if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+        }
       });
       modalDateInput.addEventListener("change", () => loadGamesForDate(modalDateInput.value));
 
