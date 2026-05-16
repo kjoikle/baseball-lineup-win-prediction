@@ -52,3 +52,5 @@ Names must match the MLB Stats API spelling (e.g., "Shohei Ohtani", not "Ohtani"
 - Add a tab to import past games and check how the model's prediction compares to reality
 
 - Implement the All-Time Lineups Tab
+
+- Improve UX

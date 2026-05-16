@@ -35,9 +35,6 @@ TEAMS = ["away", "home"]
 MODEL_PATH = "./models/model.pkl"
 MODEL = joblib.load(MODEL_PATH)
 
-# TODO: better way to search names (right now cannot search ppl with accents, hyphens cause problem?)
-# easy way to autofill from lineups?
-
 def fetch_player_hitting_stats(player_id: int, season: int) -> dict | None:
     resp = mlb._mlb_adapter_v1.get(
         endpoint=f"people/{player_id}/stats",
