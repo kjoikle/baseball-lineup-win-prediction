@@ -1,3 +1,4 @@
+import datetime
 import mlbstatsapi
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 import joblib
@@ -5,6 +6,27 @@ import numpy as np
 
 app = Flask(__name__)
 mlb = mlbstatsapi.Mlb()
+
+_players_cache: dict[int, list[str]] = {}
+
+
+def current_season() -> int:
+    return datetime.date.today().year
+
+
+def get_players_for_season(year: int) -> list[str]:
+    if year not in _players_cache:
+        try:
+            _players_cache[year] = sorted(
+                {p.full_name for p in mlb.get_people(sport_id=1, season=year) if p.full_name}
+            )
+        except Exception:
+            _players_cache[year] = []
+    return _players_cache[year]
+
+
+# Pre-load current season at startup
+get_players_for_season(current_season())
 
 BATTING_STATS = ["BA", "OBP", "SLG", "OPS", "K%", "BB%"]
 PITCHING_STATS = ["ERA", "WHIP", "SO9", "SO/W", "IP"]
@@ -14,7 +36,8 @@ TEAMS = ["away", "home"]
 MODEL_PATH = "./models/model.pkl"
 MODEL = joblib.load(MODEL_PATH)
 
-# TODO: better way to search names (right now cannot search ppl with accents)
+# TODO: better way to search names (right now cannot search ppl with accents, hyphens cause problem?)
+# easy way to autofill from lineups?
 
 def fetch_player_hitting_stats(player_id: int, season: int) -> dict | None:
     resp = mlb._mlb_adapter_v1.get(
@@ -84,6 +107,12 @@ def autofill():
     return jsonify(result)
 
 
+@app.route("/players")
+def players():
+    year = request.args.get("year", current_season(), type=int)
+    return jsonify(get_players_for_season(year))
+
+
 def run_model(_features: dict) -> dict:
     feature_array = np.array(list(_features.values())).reshape(1, -1)
     prediction = MODEL.predict_proba(feature_array)[0][1]
@@ -139,7 +168,7 @@ def validate_form(form) -> bool:
 @app.route("/")
 def index():
     error = request.args.get("error")
-    return render_template("index.html", error=error)
+    return render_template("index.html", error=error, current_year=current_season())
 
 
 @app.route("/predict", methods=["POST"])
