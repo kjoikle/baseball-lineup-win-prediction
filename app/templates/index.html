@@ -251,8 +251,30 @@
         align-items: center;
         gap: 0.4rem;
       }
-      .player-name-row .player-name-input {
+      .player-name-row .autocomplete-wrapper {
         flex: 1;
+        position: relative;
+      }
+      .autocomplete-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        z-index: 50;
+      }
+      .autocomplete-item {
+        cursor: pointer;
+        font-size: 0.85rem;
+        padding: 0.35rem 0.5rem;
+        color: #444;
+      }
+      .autocomplete-item:hover {
+        background: #f0f4f8;
       }
       .manual-toggle {
         display: flex;
@@ -273,12 +295,59 @@
         cursor: pointer;
         accent-color: #1a3055;
       }
+
+      .tab-nav {
+        background: #fff;
+        border-bottom: 2px solid #e0e0e0;
+        display: flex;
+        padding: 0 2rem;
+      }
+      .tab-btn {
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #666;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-bottom: -2px;
+        padding: 0.75rem 1.25rem;
+        transition: color 0.15s;
+      }
+      .tab-btn:hover:not(:disabled) {
+        color: #1a3055;
+      }
+      .tab-btn.active {
+        border-bottom-color: #1a3055;
+        color: #1a3055;
+      }
+      .tab-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+      .coming-soon {
+        padding: 4rem 2rem;
+        text-align: center;
+        color: #888;
+      }
+      .coming-soon h2 {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+        color: #444;
+      }
     </style>
   </head>
   <body>
     <header>
       <h1>MLB Win Probability — Enter Lineups</h1>
     </header>
+
+    <nav class="tab-nav">
+      <button class="tab-btn" data-tab="current">Single Season</button>
+      <button class="tab-btn" data-tab="alltime" disabled title="Coming soon">All-Time Lineups</button>
+    </nav>
+
+    <div id="tab-current" class="tab-panel">
 
     {% if error %}
     <div class="error-banner" id="error-banner">
@@ -293,7 +362,7 @@
     </div>
     {% endif %}
 
-    <form method="POST" action="/predict">
+    <form id="current-form" method="POST" action="/predict">
       <div class="matchup-bar">
         <label for="away_team">Away</label>
         <input
@@ -315,11 +384,9 @@
         <span class="vs">·</span>
         <label for="season">Season</label>
         <select id="season">
-          {% for y in range(2026, 2021, -1) %} {% if y == 2025 %}
-          <option value="{{ y }}" selected>{{ y }}</option>
-          {% else %}
-          <option value="{{ y }}">{{ y }}</option>
-          {% endif %} {% endfor %}
+          {% for y in range(current_year, current_year - 5, -1) %}
+          <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
         </select>
       </div>
 
@@ -333,12 +400,14 @@
             <div class="card-title">Starting Pitcher</div>
             <div class="player-select-slot">
               <div class="player-name-row">
-                <input
-                  class="player-name-input"
-                  type="text"
-                  name="{{ team }}_sp_player_name"
-                  placeholder="Pitcher name (optional)"
-                />
+                <div class="autocomplete-wrapper">
+                  <input
+                    class="player-name-input"
+                    type="text"
+                    name="{{ team }}_sp_player_name"
+                    placeholder="Pitcher name (optional)"
+                  />
+                </div>
                 <label class="manual-toggle">
                   <input type="checkbox" id="{{ team }}_sp_manual" />
                   manual
@@ -414,12 +483,14 @@
                   <span class="batter-num">{{ n }}.</span>
                   <div class="player-select-slot">
                     <div class="player-name-row">
-                      <input
-                        class="player-name-input"
-                        type="text"
-                        name="{{ team }}_bat{{ n }}_player_name"
-                        placeholder="Batter name (optional)"
-                      />
+                      <div class="autocomplete-wrapper">
+                        <input
+                          class="player-name-input"
+                          type="text"
+                          name="{{ team }}_bat{{ n }}_player_name"
+                          placeholder="Batter name (optional)"
+                        />
+                      </div>
                       <label class="manual-toggle">
                         <input
                           type="checkbox"
@@ -525,9 +596,82 @@
         <button type="submit">Predict Winner →</button>
       </div>
     </form>
+
+    </div><!-- #tab-current -->
+
+    <div id="tab-alltime" class="tab-panel">
+      <div class="coming-soon">
+        <h2>All-Time Lineups</h2>
+        <p>Build lineups from any player in MLB history. Coming soon.</p>
+      </div>
+    </div>
+
     <script>
-      const STORAGE_KEY = "lineup_form";
-      const form = document.querySelector("form");
+      const STORAGE_KEY = "lineup_form_current";
+      const form = document.getElementById("current-form");
+
+      // --- Tab switching ---
+      (function initTabs() {
+        const buttons = document.querySelectorAll(".tab-btn");
+        const panels = document.querySelectorAll(".tab-panel");
+        function activate(tabId) {
+          panels.forEach((p) => { p.hidden = p.id !== `tab-${tabId}`; });
+          buttons.forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
+          history.replaceState(null, "", `#${tabId}`);
+        }
+        buttons.forEach((btn) => {
+          btn.addEventListener("click", () => { if (!btn.disabled) activate(btn.dataset.tab); });
+        });
+        const initial = location.hash.replace("#", "") || "current";
+        activate(initial);
+      })();
+
+      // --- Player autocomplete ---
+      let playerNames = [];
+
+      function fetchPlayers(year) {
+        fetch(`/players?year=${year}`)
+          .then((r) => (r.ok ? r.json() : []))
+          .then((names) => { playerNames = names; })
+          .catch(() => {});
+      }
+
+      const seasonSelect = document.getElementById("season");
+      seasonSelect.addEventListener("change", () => fetchPlayers(seasonSelect.value));
+      fetchPlayers(seasonSelect.value);
+
+      function setupAutocomplete(input) {
+        const dropdown = document.createElement("div");
+        dropdown.className = "autocomplete-dropdown";
+        dropdown.hidden = true;
+        input.parentElement.appendChild(dropdown);
+
+        input.addEventListener("input", () => {
+          const q = input.value.trim().toLowerCase();
+          if (q.length < 3) { dropdown.hidden = true; return; }
+          const matches = playerNames.filter((n) => n.toLowerCase().includes(q)).slice(0, 5);
+          if (!matches.length) { dropdown.hidden = true; return; }
+          dropdown.innerHTML = "";
+          matches.forEach((name) => {
+            const item = document.createElement("div");
+            item.className = "autocomplete-item";
+            item.textContent = name;
+            item.addEventListener("mousedown", (e) => {
+              e.preventDefault();
+              input.value = name;
+              dropdown.hidden = true;
+            });
+            dropdown.appendChild(item);
+          });
+          dropdown.hidden = false;
+        });
+
+        input.addEventListener("blur", () => {
+          setTimeout(() => { dropdown.hidden = true; }, 150);
+        });
+      }
+
+      document.querySelectorAll(".player-name-input").forEach(setupAutocomplete);
 
       // Restore saved values on page load
       document.addEventListener("DOMContentLoaded", () => {
