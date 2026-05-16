@@ -9,6 +9,7 @@ A binary classification ML project predicting home team win probability from MLB
 ## Commands
 
 **Run the full data pipeline:**
+
 ```bash
 python scraper.py                                          # season-to-date stats (default)
 python scraper.py --time-window trailing_N --window-days 60  # last 60 days
@@ -16,11 +17,13 @@ python scraper.py --time-window full_prior_season
 ```
 
 **Install dependencies:**
+
 ```bash
 pip install -r requirements.txt
 ```
 
 **Interactive exploration:**
+
 ```bash
 jupyter notebook test_scraper.ipynb   # data pipeline walkthrough
 jupyter notebook test_model.ipynb     # model training (in progress)
@@ -49,3 +52,4 @@ Raw gamelogs (`data/gl*.txt`) and all generated outputs are gitignored. The colu
 - Prioritize clean, reusable, well-documented code.
 - Ask questions whenever you are unsure.
 - The stat time window (season-to-date, trailing N days, full prior season) is a key design parameter — changes to it affect both caching structure and feature validity/leakage.
+- Names for plan documents should make sense and be based on the content.

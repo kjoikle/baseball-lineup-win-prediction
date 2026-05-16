@@ -49,7 +49,5 @@ Names must match the MLB Stats API spelling (e.g., "Shohei Ohtani", not "Ohtani"
 
 ## Todo Items
 
-- Implement the All-Time Lineups Tab
-
 - Improve UX
   - update styling on results page
